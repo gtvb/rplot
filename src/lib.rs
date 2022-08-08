@@ -12,6 +12,5 @@
 // (image_start, image_end) -> (0, term_height)
 //
 // https://rosettacode.org/wiki/Map_range#Rust gives us a direct conversion formula.
-mod plot;
 mod parser;
 mod lexer;

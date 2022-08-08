@@ -4,6 +4,15 @@
 // Number(2) Multiplication Number(4)
 #![allow(unused)]
 
+use std::iter::Peekable;
+use std::str::Chars;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Associativity {
+    Right,
+    Left,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum OperatorType {
     Plus,
@@ -24,6 +33,14 @@ impl OperatorType {
             Pow => 3,
         }
     }
+
+    pub fn associativity(&self) -> Associativity {
+        use OperatorType::*;
+        match self {
+            Pow => Associativity::Right,
+            _ => Associativity::Left,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -35,72 +52,88 @@ pub enum TokenType {
     RightParen,
 }
 
-pub struct Lexer {
+pub struct Lexer<'a> {
     source: String,
+    chars: Peekable<Chars<'a>>,
 }
 
-impl Lexer {
-    pub fn new(source: String) -> Lexer {
-        Lexer { source }
+impl<'a> Lexer<'a> {
+    pub fn new(source: &'a str) -> Self {
+        Self {
+            source: source.into(),
+            chars: source.chars().peekable(),
+        }
     }
 
     pub fn scan(&mut self) -> Vec<TokenType> {
         let mut tokens: Vec<TokenType> = Vec::new();
-        let mut it = self.source.chars().peekable();
 
-        while let Some(token) = it.next() {
+        while let Some(token) = self.chars.next() {
             match token {
                 '+' => tokens.push(TokenType::Operator(OperatorType::Plus)),
-                '-' => tokens.push(TokenType::Operator(OperatorType::Minus)),
+                '-' => {
+                    if self.chars.peek().unwrap().is_numeric() {
+                        tokens.push(TokenType::Number(self.number(token)));
+                        continue;
+                    }
+                    tokens.push(TokenType::Operator(OperatorType::Minus))
+                },
                 '*' => tokens.push(TokenType::Operator(OperatorType::Multiplication)),
                 '/' => tokens.push(TokenType::Operator(OperatorType::Division)),
                 '^' => tokens.push(TokenType::Operator(OperatorType::Pow)),
                 '(' => tokens.push(TokenType::LeftParen),
                 ')' => tokens.push(TokenType::RightParen),
-                token if token.is_numeric() => {
-                    let mut number = String::new();
-                    number.push(token);
-
-                    while let Some(&next) = it.peek() {
-                        if next != '.' && !next.is_numeric() {
-                            break;
-                        }
-
-                        if next == '.' || next.is_numeric() {
-                            number.push(next);
-                            it.next();
-                        }
-                    }
-
-                    let number: f64 = number.parse().unwrap();
-                    tokens.push(TokenType::Number(number));
-                }
-                token if token.is_alphabetic() => {
-                    let mut function = String::new();
-
-                    function.push(token);
-
-                    while let Some(&next) = it.peek() {
-                        if !next.is_alphabetic() && function.eq("log") && next.is_numeric() {
-                            function.push(next);
-                            it.next();
-                        }
-
-                        if !next.is_alphabetic() {
-                            break;
-                        }
-
-                        if next.is_alphabetic() {
-                            function.push(next);
-                            it.next();
-                        }
-                    }
-
-                    tokens.push(TokenType::Function(function));
-                }
+                token if token.is_numeric() => tokens.push(TokenType::Number(self.number(token))),
+                token if token.is_alphabetic() => tokens.push(TokenType::Function(self.function(token))),
                 _ => (),
             }
         }
         tokens
     }
+
+    fn number(&mut self, first: char) -> f64 {
+        let mut number = String::new();
+        number.push(first);
+
+        while let Some(&next) = self.chars.peek() {
+            if next != '.' && !next.is_numeric() {
+                break;
+            }
+
+            if next == '.' || next.is_numeric() {
+                number.push(next);
+                self.chars.next();
+            }
+        }
+
+        number.parse::<f64>().unwrap()
+    }
+
+    fn function(&mut self, first: char) -> String {
+        let mut function = String::new();
+        function.push(first);
+
+        while let Some(&next) = self.chars.peek() {
+            if !next.is_alphabetic() && function.eq("log") && next.is_numeric() {
+                function.push(next);
+                self.chars.next();
+            }
+
+            if !next.is_alphabetic() {
+                break;
+            }
+
+            if next.is_alphabetic() {
+                function.push(next);
+                self.chars.next();
+            }
+        }
+
+        function
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 }
