@@ -1,9 +1,3 @@
-// Break up the sequences into recognizable tokens.
-// 1 + 2 - sin(30) / (2 * 4)
-// Number(1) Sum Number(2) Minus Function("sin") LeftParen Number(30) RightParen Division LeftParen
-// Number(2) Multiplication Number(4)
-#![allow(unused)]
-
 use std::iter::Peekable;
 use std::str::Chars;
 
@@ -48,92 +42,80 @@ pub enum TokenType {
     Number(f64),
     Function(String),
     Operator(OperatorType),
+    Variable,
     LeftParen,
     RightParen,
 }
 
-pub struct Lexer<'a> {
-    source: String,
-    chars: Peekable<Chars<'a>>,
+pub fn scan(expression: &str) -> Vec<TokenType> {
+    let mut tokens: Vec<TokenType> = Vec::new();
+    let expression = String::from(expression);
+    let mut it = expression.chars().peekable();
+
+    while let Some(token) = it.next() {
+        match token {
+            '+' => tokens.push(TokenType::Operator(OperatorType::Plus)),
+            '-' => {
+                if it.peek().unwrap().is_numeric() {
+                    tokens.push(TokenType::Number(number(&mut it, token)));
+                } else {
+                    tokens.push(TokenType::Operator(OperatorType::Minus));
+                }
+            }
+            '*' => tokens.push(TokenType::Operator(OperatorType::Multiplication)),
+            '/' => tokens.push(TokenType::Operator(OperatorType::Division)),
+            '^' => tokens.push(TokenType::Operator(OperatorType::Pow)),
+            '(' => tokens.push(TokenType::LeftParen),
+            ')' => tokens.push(TokenType::RightParen),
+            '$' => tokens.push(TokenType::Variable),
+            token if token.is_numeric() => tokens.push(TokenType::Number(number(&mut it, token))),
+            token if token.is_alphabetic() => {
+                tokens.push(TokenType::Function(function(&mut it, token)))
+            }
+            _ => (),
+        }
+    }
+    println!("TOKENS: {:?}", tokens);
+    tokens
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(source: &'a str) -> Self {
-        Self {
-            source: source.into(),
-            chars: source.chars().peekable(),
+fn number(iterator: &mut Peekable<Chars>, first: char) -> f64 {
+    let mut number = String::new();
+    number.push(first);
+
+    while let Some(&next) = iterator.peek() {
+        if next != '.' && !next.is_numeric() {
+            break;
+        }
+
+        if next == '.' || next.is_numeric() {
+            number.push(next);
+            iterator.next();
         }
     }
 
-    pub fn scan(&mut self) -> Vec<TokenType> {
-        let mut tokens: Vec<TokenType> = Vec::new();
-
-        while let Some(token) = self.chars.next() {
-            match token {
-                '+' => tokens.push(TokenType::Operator(OperatorType::Plus)),
-                '-' => {
-                    if self.chars.peek().unwrap().is_numeric() {
-                        tokens.push(TokenType::Number(self.number(token)));
-                        continue;
-                    }
-                    tokens.push(TokenType::Operator(OperatorType::Minus))
-                },
-                '*' => tokens.push(TokenType::Operator(OperatorType::Multiplication)),
-                '/' => tokens.push(TokenType::Operator(OperatorType::Division)),
-                '^' => tokens.push(TokenType::Operator(OperatorType::Pow)),
-                '(' => tokens.push(TokenType::LeftParen),
-                ')' => tokens.push(TokenType::RightParen),
-                token if token.is_numeric() => tokens.push(TokenType::Number(self.number(token))),
-                token if token.is_alphabetic() => tokens.push(TokenType::Function(self.function(token))),
-                _ => (),
-            }
-        }
-        tokens
-    }
-
-    fn number(&mut self, first: char) -> f64 {
-        let mut number = String::new();
-        number.push(first);
-
-        while let Some(&next) = self.chars.peek() {
-            if next != '.' && !next.is_numeric() {
-                break;
-            }
-
-            if next == '.' || next.is_numeric() {
-                number.push(next);
-                self.chars.next();
-            }
-        }
-
-        number.parse::<f64>().unwrap()
-    }
-
-    fn function(&mut self, first: char) -> String {
-        let mut function = String::new();
-        function.push(first);
-
-        while let Some(&next) = self.chars.peek() {
-            if !next.is_alphabetic() && function.eq("log") && next.is_numeric() {
-                function.push(next);
-                self.chars.next();
-            }
-
-            if !next.is_alphabetic() {
-                break;
-            }
-
-            if next.is_alphabetic() {
-                function.push(next);
-                self.chars.next();
-            }
-        }
-
-        function
-    }
+    number.parse::<f64>().unwrap()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn function(iterator: &mut Peekable<Chars>, first: char) -> String {
+    let mut function = String::new();
+    function.push(first);
+
+    while let Some(&next) = iterator.peek() {
+        if !next.is_alphabetic() && function.eq("log") && next.is_numeric() {
+            function.push(next);
+            iterator.next();
+        }
+
+        if !next.is_alphabetic() {
+            break;
+        }
+
+        if next.is_alphabetic() {
+            function.push(next);
+            iterator.next();
+        }
+    }
+
+    function
 }

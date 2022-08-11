@@ -14,3 +14,4 @@
 // https://rosettacode.org/wiki/Map_range#Rust gives us a direct conversion formula.
 mod parser;
 mod lexer;
+mod plot;
