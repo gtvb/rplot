@@ -77,7 +77,6 @@ pub fn eval_with_variables<'a>(expression: &'a str, variable_substitutes: &[f64]
     for vs in variable_substitutes {
         results.push(eval(&substitute(expression, *vs)));
     }
-    println!("RESULTS: {:?}", results);
     results
 }
 

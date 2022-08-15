@@ -10,15 +10,20 @@ fn map_range(from_range: (f64, f64), to_range: (f64, f64), s: f64) -> f64 {
 fn generate_domain_with_step(lower: f64, upper: f64, step: f64) -> Vec<f64> {
     let mut domain = Vec::new();
     let mut i = lower;
-    while i.partial_cmp(&upper).unwrap() == Ordering::Less {
+    let mut cmp = i.partial_cmp(&upper).unwrap();
+    while cmp == Ordering::Less || cmp == Ordering::Equal {
         domain.push(i);
         i += step;
+        cmp = i.partial_cmp(&upper).unwrap();
     }
     domain
 }
 
 fn parse_domain(domain_str: &str) -> Vec<f64> {
-    let parts: Vec<_> = domain_str.split(":").map(|val| val.parse::<f64>().unwrap()).collect();
+    let parts: Vec<_> = domain_str
+        .split(":")
+        .map(|val| val.parse::<f64>().unwrap())
+        .collect();
     generate_domain_with_step(parts[0], parts[2], parts[1])
 }
 
@@ -31,57 +36,70 @@ fn get_bounds<T: Copy + PartialOrd>(v: &Vec<T>) -> (T, T) {
 
 pub struct Plot {
     grid: Vec<char>,
+
+    domain: Vec<f64>,
+    image: Vec<f64>,
+
     equation: String,
     term_w: usize,
     term_h: usize,
 }
 
 impl Plot {
-    pub fn new(equation: &str) -> Plot {
+    pub fn new(equation: &str, domain: &str) -> Plot {
         let (w, h) = match term_size::dimensions() {
             Some((w, h)) => (w, h),
             None => panic!("could not get terminal dimensions"),
         };
+        let domain = parse_domain(domain);
+        let image = parser::eval_with_variables(equation, &domain);
 
         Plot {
-            grid: vec![' '; w*h],
+            grid: vec![' '; w * h],
+            domain,
+            image,
             equation: String::from(equation),
             term_w: w,
             term_h: h,
         }
     }
 
-    fn fill_points(&mut self, domain: &str) {
-        let domain = parse_domain(domain);
-        let image = parser::eval_with_variables(&self.equation, &domain);
+    fn fill_points(&mut self) {
+        let (d1, d2) = get_bounds(&self.domain);
+        let (i1, i2) = get_bounds(&self.image);
 
-        let domain_bounds = get_bounds(&domain);
-        let image_bounds = get_bounds(&image);
+        self.domain.iter().zip(self.image.iter()).for_each(|p| {
+            let d = map_range((d1, d2), (1.0, self.term_w as f64 - 1.0), *p.0) as usize;
+            let i = map_range((i2, i1), (1.0, self.term_h as f64 - 1.0), *p.1) as usize;
+            let idx = d + (self.term_w * i);
 
-        let points = domain.into_iter().zip(image.into_iter());        
-        let points: Vec<_> = points.map(|p| {
-            let d = map_range(domain_bounds, (0.0, self.term_w as f64 - 1.0), p.0) as usize;
-            let i = map_range(image_bounds, (0.0, self.term_h as f64 - 1.0), p.1) as usize;
-
-            (d, i)
-        }).collect();
-
-        points.iter().for_each(|p| {
-            let i = p.0 + self.term_w * p.1;
-            self.grid[i] = '*';
+            self.grid[idx] = '*';
         });
     }
 
-    pub fn plot(&mut self, domain: &str) {
-        self.fill_points(domain);
+    fn fill_chart_data(&mut self) {
+        for i in 0..self.term_h - 1 {
+            self.grid[self.term_w * i] = '│';
+        }
+
+        for i in 1..self.term_w {
+            self.grid[self.term_w * self.term_h - i] = '─';
+        }
+
+        self.grid[self.term_w * self.term_h - self.term_w] = '└';
+    }
+
+    pub fn plot(&mut self) {
+        self.fill_chart_data();
+        self.fill_points();
         for (i, el) in self.grid.iter().enumerate() {
-            if i % self.term_w == 0 {
+            if i % self.term_w + 1 == 0 {
                 println!("{}", el);
                 continue;
             }
 
             print!("{}", el);
         }
+        println!();
     }
 }
-

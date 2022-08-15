@@ -75,7 +75,6 @@ pub fn scan(expression: &str) -> Vec<TokenType> {
             _ => (),
         }
     }
-    println!("TOKENS: {:?}", tokens);
     tokens
 }
 
