@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::iter::Peekable;
 use std::str::Chars;
 
@@ -67,7 +69,7 @@ pub fn scan(expression: &str) -> Vec<TokenType> {
             '^' => tokens.push(TokenType::Operator(OperatorType::Pow)),
             '(' => tokens.push(TokenType::LeftParen),
             ')' => tokens.push(TokenType::RightParen),
-            '$' => tokens.push(TokenType::Variable),
+            '@' => tokens.push(TokenType::Variable),
             token if token.is_numeric() => tokens.push(TokenType::Number(number(&mut it, token))),
             token if token.is_alphabetic() => {
                 tokens.push(TokenType::Function(function(&mut it, token)))

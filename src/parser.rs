@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use crate::lexer::{self, Associativity, OperatorType, TokenType};
 use std::collections::VecDeque;
 
@@ -65,7 +63,7 @@ pub fn shunting_yard(tokens: &[TokenType]) -> Vec<&TokenType> {
 }
 
 pub fn substitute(expression: &str, value: f64) -> String {
-    expression.replace("$", &value.to_string())
+    expression.replace("@", &value.to_string())
 }
 
 pub fn eval_with_variable(expression: &str, variable_substitute: f64) -> f64 {
