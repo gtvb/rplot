@@ -2,7 +2,6 @@
 
 Just a simple utility to plot equations in your terminal. Built with Rust :)
 
-## How to use it
 ```
 rplot
 
@@ -30,5 +29,5 @@ I'm doing this for learning purposes. Some equations can't even be represented, 
 ```
 rplot @ -25.0:0.1:25.0 // a simple line
 rplot @^2 -12:0.1:12 // a parabola
-rplot "sin(@)" -12:0.1:12 // sin() function. Needs to be on quotes :|
+rplot "sin(@)" -3.14:0.1:3.14 // sin() function. Needs to be on quotes :|
 ```
